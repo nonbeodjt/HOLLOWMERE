@@ -153,9 +153,13 @@ export function Hud({ phaseRef }: HudProps) {
         </div>
       ) : null}
 
-      {/* INTRO CUTSCENE — tells the story while every asset preloads behind it;
-          the final "Enter" stays locked until the estate is fully loaded. */}
-      {s.hudPhase === 'TITLE' ? <IntroCutscene ready={s.ready} loadProgress={s.loadProgress} /> : null}
+      {/* LOADING — a dedicated screen that holds until EVERY asset is loaded;
+          only then does the intro cutscene / start screen mount. */}
+      {s.hudPhase === 'TITLE' && !s.ready ? <LoadingScreen progress={s.loadProgress} /> : null}
+
+      {/* INTRO CUTSCENE — mounts only once the estate is fully loaded, so the
+          story timer and the video begin from a clean, asset-complete state. */}
+      {s.hudPhase === 'TITLE' && s.ready ? <IntroCutscene ready={s.ready} loadProgress={s.loadProgress} /> : null}
 
       {/* DEATH */}
       {s.hudPhase === 'DEAD' ? (
@@ -329,6 +333,28 @@ function InventoryScreen({ s }: { s: GameStoreSnapshot }) {
   );
 }
 
+// ── Loading screen ────────────────────────────────────────────────────
+// Shown before anything else: holds until every model + the physics engine is
+// loaded (store.ready). Also warms the intro video's buffer via a hidden
+// preloading <video>, so the cutscene starts instantly once we let go.
+function LoadingScreen({ progress }: { progress: number }) {
+  const pct = Math.round(progress * 100);
+  return (
+    <div style={loadingScreenStyle}>
+      <h1 style={{ letterSpacing: 8, color: INK, margin: 0 }}>HOLLOWMERE</h1>
+      <p style={{ color: AMBER, letterSpacing: 3, marginTop: 14, fontSize: '0.8rem' }}>THE HOUSE IS WAKING…</p>
+      <div style={{ width: 280, height: 6, marginTop: 16, background: 'rgba(233,220,195,0.15)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: AMBER, borderRadius: 3, transition: 'width 160ms linear' }} />
+      </div>
+      <p style={{ color: INK, opacity: 0.55, marginTop: 10, fontSize: '0.72rem' }}>{pct}%</p>
+      <p style={{ color: INK, opacity: 0.35, marginTop: 18, fontSize: '0.68rem', maxWidth: 380, textAlign: 'center', lineHeight: 1.6 }}>
+        Every room, every resident, every light is being placed. Nothing enters the house after you do.
+      </p>
+      {introVideo ? <video src={introVideo} preload="auto" muted playsInline style={{ display: 'none' }} /> : null}
+    </div>
+  );
+}
+
 // ── Opening story cutscene ────────────────────────────────────────────
 // A sequence of narrative beats that plays the moment the game mounts. Every
 // model + the physics engine preload in the background while it runs, so by the
@@ -462,6 +488,7 @@ const titleScreenStyle: CSSProperties = { position: 'absolute', inset: 0, displa
 const titleArtStyle: CSSProperties = { maxWidth: 'min(80vw, 460px)', imageRendering: 'pixelated', filter: 'drop-shadow(0 4px 16px #000)' };
 const cutsceneStyle: CSSProperties = { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'radial-gradient(circle at 50% 38%, rgba(18,14,10,0.72), rgba(2,2,3,0.97))', fontFamily: fontStack, pointerEvents: 'auto', cursor: 'pointer', padding: '24px 32px', textAlign: 'center', userSelect: 'none' };
 const cutsceneTextStyle: CSSProperties = { color: INK, opacity: 0.88, maxWidth: 520, fontSize: '1.02rem', lineHeight: 1.75, marginTop: 18, minHeight: 96, textShadow: '0 1px 3px #000' };
+const loadingScreenStyle: CSSProperties = { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#020203', fontFamily: fontStack, pointerEvents: 'auto', userSelect: 'none' };
 const cutsceneVideoStyle: CSSProperties = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 };
 const cutsceneShadeStyle: CSSProperties = { position: 'absolute', inset: 0, zIndex: 1, background: 'radial-gradient(circle at 50% 42%, rgba(4,3,3,0.35), rgba(2,2,3,0.88))' };
 const cutsceneContentStyle: CSSProperties = { position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' };
