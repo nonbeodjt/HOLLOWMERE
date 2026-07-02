@@ -427,8 +427,6 @@ export function createDirector(deps: DirectorDeps): Director {
         toast('Pistol ammo (+8).');
         break;
       case 'fenmoss_1':
-      case 'fenmoss_3':
-      case 'fenmoss_sister':
         hp = Math.min(TUNING.playerMaxHp, hp + 40);
         toast('Fenmoss — the wound closes a little.');
         break;
@@ -460,9 +458,7 @@ export function createDirector(deps: DirectorDeps): Director {
         if (hasCannon) cannonAmmo += 3;
         toast("Servants' ammo cache — pistol +12, a flare, and rounds for what you carry.");
         break;
-      case 'lockpick_1':
       case 'lockpick_2':
-      case 'lockpick_3':
         lockpicks += 1;
         toast('A lockpick — for strongboxes the keys don’t fit. (Press to pick; it may snap.)');
         break;
@@ -639,8 +635,10 @@ export function createDirector(deps: DirectorDeps): Director {
     bandages += 1;
     battery = Math.min(TUNING.batteryMax, battery + 40);
     if (Math.random() < 0.4) { flares += 1; hasFlare = true; }
+    const gotPick = Math.random() < 0.5;
+    if (gotPick) lockpicks += 1; // picking sustains itself — supplies live behind the lock
     audio.play('vaultOpen');
-    toast('The strongbox clicks open — supplies within. (+8 rounds · +1 bandage · +40% battery)');
+    toast(`The strongbox clicks open — supplies within. (+8 rounds · +1 bandage · +40% battery${gotPick ? ' · +1 lockpick' : ''})`);
   };
   const attemptPin = () => {
     if (pickAngle >= pickLo && pickAngle <= pickHi) {

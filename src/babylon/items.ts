@@ -220,9 +220,9 @@ const SPECS: ItemSpec[] = [
   { id: 'lockbox_1', roomId: 'library', lx: 5, lz: -3, kind: 'lockbox', label: 'Strongbox', asset: ASSET_KEYS.props.itemBox, color: [0.34, 0.26, 0.16], scale: 0.55, blockerHalf: 0.4 },
   { id: 'lockbox_2', roomId: 'long_gallery', lx: 2.5, lz: -6, kind: 'lockbox', label: 'Strongbox', asset: ASSET_KEYS.props.itemBox, color: [0.34, 0.26, 0.16], scale: 0.55, blockerHalf: 0.4 },
   { id: 'lockbox_3', roomId: 'boiler', lx: -3, lz: -4, kind: 'lockbox', label: 'Strongbox', asset: ASSET_KEYS.props.itemBox, color: [0.34, 0.26, 0.16], scale: 0.55, blockerHalf: 0.4 },
-  { id: 'lockpick_1', roomId: 'corridor', lx: -3, lz: -3, kind: 'item', label: 'Lockpick', asset: ASSET_KEYS.props.ironKey, color: [0.6, 0.62, 0.66], emissive: true, scale: 0.38, spin: true },
+  // One findable lockpick on the study desk; the rest come from opened strongboxes
+  // (skill begets picks) rather than lying on floors everywhere.
   { id: 'lockpick_2', roomId: 'study', lx: 2.6, lz: -2, kind: 'item', label: 'Lockpick', asset: ASSET_KEYS.props.ironKey, color: [0.6, 0.62, 0.66], emissive: true, scale: 0.38, spin: true },
-  { id: 'lockpick_3', roomId: 'music_room', lx: -4, lz: -3, kind: 'item', label: 'Lockpick', asset: ASSET_KEYS.props.ironKey, color: [0.6, 0.62, 0.66], emissive: true, scale: 0.38, spin: true },
   // Hall — the Crest Door
   { id: 'crest_door', roomId: 'hall', lx: 5.5, lz: -8, kind: 'crestdoor', label: 'Crest Door', asset: ASSET_KEYS.props.crestDoor, color: [0.28, 0.2, 0.12], scale: 2.4, blockerHalf: 1.2 },
   // Conservatory — herbs + the Tide-valve (revealed when the Bloom dies)
@@ -264,7 +264,6 @@ const SPECS: ItemSpec[] = [
   // The Sister's Room [U05]: refuge + Marion's traces — Ysolde is here early,
   // Marion's photo foreshadows the reunion, herbs; a near-safe room (no enemy).
   { id: 'marion_photo', roomId: 'sister_room', lx: -3.2, lz: 2.4, kind: 'item', label: "Marion's Photo", asset: ASSET_KEYS.props.book, color: [0.7, 0.7, 0.62], emissive: true, scale: 0.45, spin: true },
-  { id: 'fenmoss_sister', roomId: 'sister_room', lx: 3.2, lz: 2.4, kind: 'item', label: 'Herbs (Fenmoss)', asset: ASSET_KEYS.props.fenmoss, color: [0.3, 0.7, 0.35], emissive: true, scale: 0.5, spin: true },
   // The Steward's Loft [U07]: a hound nest + his keepsake (mercy) and ledger /
   // work-song sheet — the compulsion made visible. Plus a servants' ammo cache.
   { id: 'keepsake', roomId: 'attic_loft', lx: -3, lz: 2, kind: 'item', label: "The Steward's Keepsake", asset: ASSET_KEYS.props.brassKey, color: [0.7, 0.66, 0.4], emissive: true, scale: 0.4, spin: true },
@@ -273,7 +272,6 @@ const SPECS: ItemSpec[] = [
   // The Kitchen [G06]: hound ambush + a CLEAVER (melee upgrade) + herbs. The
   // dumbwaiter shortcut to the boiler is a room exit (see config).
   { id: 'cleaver', roomId: 'kitchen', lx: 0, lz: 1.5, kind: 'item', label: 'Cleaver', asset: ASSET_KEYS.props.dagger, color: [0.7, 0.72, 0.75], emissive: true, scale: 0.5, spin: true },
-  { id: 'fenmoss_3', roomId: 'kitchen', lx: -3, lz: 2, kind: 'item', label: 'Herbs (Fenmoss)', asset: ASSET_KEYS.props.fenmoss, color: [0.3, 0.7, 0.35], emissive: true, scale: 0.5, spin: true },
   {
     id: 'marion', roomId: 'containment', lx: -5, lz: -1, kind: 'npc', label: 'Marion', asset: ASSET_KEYS.chars.marion, color: [0.62, 0.68, 0.66], scale: 1.7, blockerHalf: 0.5,
     lines: [

@@ -868,6 +868,13 @@ export function createGameWorld(scene: Scene, _canvas: HTMLCanvasElement): GameW
   hearth.intensity = 0.0;
   hearth.range = 9;
 
+  // Warm accent over the Music Room so the dark grand piano reads (it was a
+  // featureless black mass in the near-black ambient). Only lit in that room.
+  const musicLamp = new PointLight('music_lamp', new Vector3(ROOMS.music_room.center[0] - 3, 2.3, ROOMS.music_room.center[2] - 2), scene);
+  musicLamp.diffuse = new Color3(1.0, 0.85, 0.55);
+  musicLamp.intensity = 0.0;
+  musicLamp.range = 12;
+
   // template-required visible ground (kept tiny, under the void; rooms are the real floors)
   const ground = MeshBuilder.CreateGround('ground', { width: RUNTIME_CONFIG.world.groundSize, height: RUNTIME_CONFIG.world.groundSize }, scene);
   ground.material = createStandardMaterial(scene, 'ground-material', new Color3(0.04, 0.04, 0.05));
@@ -947,6 +954,7 @@ export function createGameWorld(scene: Scene, _canvas: HTMLCanvasElement): GameW
     rt.node.setEnabled(true);
     tint = WING_TINT[rt.def.wing] ?? WING_TINT.manor;
     hearth.intensity = rt.def.wing === 'save' ? 1.1 : 0.0;
+    musicLamp.intensity = id === 'music_room' ? 1.7 : 0.0;
   };
 
   setActiveRoom('hall');
@@ -1075,12 +1083,14 @@ export function createGameWorld(scene: Scene, _canvas: HTMLCanvasElement): GameW
         flashlight.intensity = 0;
       }
       hearth.intensity = rooms[activeRoom].def.wing === 'save' ? 1.1 + Math.sin(timeAcc * 9) * 0.18 : 0;
+      musicLamp.intensity = activeRoom === 'music_room' ? 1.7 + Math.sin(timeAcc * 8) * 0.12 : 0;
     },
     dispose() {
       crush.dispose();
       flashlight.dispose();
       lantern.dispose();
       hearth.dispose();
+      musicLamp.dispose();
       (Object.keys(rooms) as RoomId[]).forEach((id) => rooms[id].node.dispose(false, true));
       ground.dispose(false, true);
       hemiLight.dispose();
