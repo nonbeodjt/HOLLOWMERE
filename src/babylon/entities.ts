@@ -69,6 +69,8 @@ export interface SceneEntities {
   relocateStewardTo(roomId: RoomId, world: GameWorldObjects): void;
   stewardActive(): boolean;
   stewardRoom(): RoomId | null; // current room of the roaming Steward (null if idle/down)
+  stewardDownAt(playerPos: Vector3, roomId: RoomId): boolean; // Steward downed + within mercy reach
+  mercySteward(): void; // lay the keepsake — pacify him for good
   aliveCount(roomId: RoomId): number;
   bossAlive(): boolean;
   hitFromAngle(playerPos: Vector3, roomId: RoomId): number | null; // world yaw to nearest threat
@@ -799,6 +801,18 @@ export function createSceneEntities(scene: Scene): SceneEntities {
     },
     stewardRoom() {
       return steward.state === 'idle' || steward.state === 'down' ? null : steward.roomId;
+    },
+    stewardDownAt(playerPos, roomId) {
+      if (steward.state !== 'down' || steward.roomId !== roomId) return false;
+      const dx = steward.root.position.x - playerPos.x;
+      const dz = steward.root.position.z - playerPos.z;
+      return dx * dx + dz * dz <= 9; // within ~3m of the downed Steward
+    },
+    mercySteward() {
+      // lay the keepsake in his hands — he stays down, at peace, for good
+      steward.state = 'gone';
+      layCorpse(steward);
+      steward.root.setEnabled(false);
     },
     aliveCount(roomId) {
       let n = 0;

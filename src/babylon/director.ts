@@ -61,6 +61,8 @@ export function createDirector(deps: DirectorDeps): Director {
   let hasLocket = false; // Iseult's locket (grief-room key item / safe key)
   let hasKeepsake = false; // the Steward's keepsake (mercy hook)
   let hasCleaver = false; // kitchen melee upgrade — dagger hits harder
+  let safeOpened = false; // Founder's wall-safe (opened by the locket)
+  let stewardMercy = false; // laid the keepsake — Steward pacified for good
   let ink: number = TUNING.startInk;
   // ── survival systems ──
   let stamina: number = TUNING.staminaMax; // sprint reserve
@@ -588,6 +590,14 @@ export function createDirector(deps: DirectorDeps): Director {
   };
 
   const interact = (itemId: string | null, exitIndex: number) => {
+    // mercy on the downed Steward (carrying his keepsake) — not a real item
+    if (itemId === '__mercy__') {
+      entities.mercySteward();
+      stewardMercy = true;
+      audio.play('save');
+      toast('You lay the keepsake in his hands. The Steward stills, and does not rise again.');
+      return;
+    }
     if (itemId) {
       const it = items.byId(itemId);
       if (!it) return;
@@ -620,6 +630,21 @@ export function createDirector(deps: DirectorDeps): Director {
         else {
           toast('Sealed — bound to the gallery portraits. (Play the phonograph.)');
           audio.play('puzzleBad');
+        }
+      } else if (it.kind === 'safe') {
+        if (safeOpened) {
+          toast('The safe hangs open, emptied.');
+        } else if (!hasLocket) {
+          toast("A wall-safe behind the portrait of Iseult & Cosmo. The keyhole is shaped for a locket.");
+          audio.play('puzzleBad');
+        } else {
+          safeOpened = true;
+          bandages += 2;
+          ammo += 12;
+          ink += 1;
+          audio.play('vaultOpen');
+          objective = "You've read the Founder's confession. Wake the lighthouse; end what he began.";
+          toast("The locket turns. Inside: the Founder's confession — nine souls fed to the tide to spare Hollowmere — and a cache of supplies. (+2 bandages, +12 rounds, +ink)");
         }
       } else if (it.kind === 'furnace') {
         if (furnaceLit) {
@@ -848,6 +873,11 @@ export function createDirector(deps: DirectorDeps): Director {
 
   const computePrompt = (): { itemId: string | null; exitIndex: number } => {
     const pos = actor.position;
+    // mercy takes priority: a downed Steward + his keepsake in hand
+    if (hasKeepsake && !stewardMercy && entities.stewardDownAt(pos, room)) {
+      promptText = 'Lay the keepsake — grant mercy';
+      return { itemId: '__mercy__', exitIndex: -1 };
+    }
     const near = items.nearest(pos, room);
     // nearest door exit
     let exitIndex = -1;
@@ -907,9 +937,15 @@ export function createDirector(deps: DirectorDeps): Director {
                             : 'Valve console (needs wheel)'
                         : it.kind === 'fusebox'
                           ? 'Throw the breakers'
-                          : it.kind === 'doc'
-                            ? 'Read'
-                            : `Take ${it.label}`;
+                          : it.kind === 'safe'
+                            ? safeOpened
+                              ? 'Wall-safe (open)'
+                              : hasLocket
+                                ? 'Open with the locket'
+                                : 'Wall-safe (locket keyhole)'
+                            : it.kind === 'doc'
+                              ? 'Read'
+                              : `Take ${it.label}`;
       exitIndex = -1;
     } else if (exitIndex >= 0) {
       const ex = exits[exitIndex];

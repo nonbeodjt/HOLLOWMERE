@@ -75,7 +75,7 @@ function buildCrestDoorDressing(scene: Scene, node: TransformNode): CrestSocket[
   return sockets;
 }
 
-export type InteractKind = 'item' | 'savedesk' | 'book' | 'case' | 'crestdoor' | 'doc' | 'phono' | 'vault' | 'furnace' | 'valve' | 'fusebox' | 'npc';
+export type InteractKind = 'item' | 'savedesk' | 'book' | 'case' | 'crestdoor' | 'doc' | 'phono' | 'vault' | 'furnace' | 'valve' | 'fusebox' | 'npc' | 'safe';
 
 export interface Interactable {
   id: string;
@@ -215,6 +215,7 @@ const SPECS: ItemSpec[] = [
   { id: 'doc_clue', roomId: 'study', lx: 0, lz: -2.8, kind: 'doc', label: "Librarian's Note", asset: ASSET_KEYS.props.logbook, color: [0.7, 0.65, 0.5], emissive: true, scale: 0.5, spin: true },
   { id: 'shells_1', roomId: 'study', lx: 2.6, lz: 1.8, kind: 'item', label: 'Pistol Ammo', color: [0.6, 0.5, 0.2], emissive: true, scale: 0.45, spin: true, viz: 'pistolAmmo' },
   { id: 'fenmoss_1', roomId: 'study', lx: -2.6, lz: 1.8, kind: 'item', label: 'Fenmoss', asset: ASSET_KEYS.props.fenmoss, color: [0.3, 0.7, 0.35], emissive: true, scale: 0.5, spin: true },
+  { id: 'study_safe', roomId: 'study', lx: 4.2, lz: -3, kind: 'safe', label: "Founder's Wall-Safe", asset: ASSET_KEYS.props.fuseBox, color: [0.32, 0.3, 0.3], scale: 1.0, blockerHalf: 0.45 },
   // Hall — the Crest Door
   { id: 'crest_door', roomId: 'hall', lx: 5.5, lz: -8, kind: 'crestdoor', label: 'Crest Door', asset: ASSET_KEYS.props.crestDoor, color: [0.28, 0.2, 0.12], scale: 2.4, blockerHalf: 1.2 },
   // Conservatory — herbs + the Tide-valve (revealed when the Bloom dies)
