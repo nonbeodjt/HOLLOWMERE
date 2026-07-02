@@ -202,6 +202,27 @@ export function Hud({ phaseRef }: HudProps) {
         </div>
       ) : null}
 
+      {/* Work-song piano minigame — world stays LIVE while you play. */}
+      {s.songActive ? (
+        <div style={pickWrapStyle}>
+          <div style={{ color: AMBER, letterSpacing: 3, fontSize: '0.9rem', marginBottom: 4 }}>THE WORK-SONG</div>
+          <div style={{ color: INK, opacity: 0.7, fontSize: '0.74rem', marginBottom: 12 }}>
+            MID · TOP · LOW · HIGH — note <b style={{ color: AMBER }}>{s.songStep + 1}</b>/4
+          </div>
+          <div style={{ ...pickTrackStyle, display: 'flex' }}>
+            {['LOW', 'MID', 'HIGH', 'TOP'].map((z, i) => (
+              <div key={z} style={{ flex: 1, borderRight: i < 3 ? '1px solid rgba(233,220,195,0.25)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', letterSpacing: 1, color: INK, opacity: 0.65, fontFamily: fontStack }}>
+                {z}
+              </div>
+            ))}
+            <div style={{ position: 'absolute', top: -4, bottom: -4, left: `calc(${s.songPointer * 100}% - 1px)`, width: 3, background: '#e9dcc3', boxShadow: '0 0 6px #e9dcc3' }} />
+          </div>
+          <div style={{ color: INK, opacity: 0.6, fontSize: '0.72rem', marginTop: 12 }}>
+            <b style={{ color: AMBER }}>E</b> / <b style={{ color: AMBER }}>click</b> — strike the note · <b style={{ color: AMBER }}>Q</b> — stop
+          </div>
+        </div>
+      ) : null}
+
       {/* Full categorized inventory (toggle with I / Tab — pauses play) */}
       {s.inventoryOpen ? <InventoryScreen s={s} /> : null}
 

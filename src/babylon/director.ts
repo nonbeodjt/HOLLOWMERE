@@ -73,6 +73,26 @@ export function createDirector(deps: DirectorDeps): Director {
   let pickPins = 0;
   let pickBoxId = '';
   let pickSpeed = 1;
+  // ── puzzles ──
+  // The Great Clock (Landing): set the hands to the hour from Iseult's diary.
+  let clockHour = 3;
+  let clockSolved = false;
+  // The Vane portraits (Landing): light them with the BEAM in the order he lost
+  // them — wife, son, himself. Aim the flashlight at each in turn.
+  const EYES_ORDER = ['portrait_c', 'portrait_r', 'portrait_l']; // Iseult → Cosmo → the Founder
+  let eyesStep = 0;
+  let eyesSolved = false;
+  let aimTargetIdx = -1; // portrait currently under the beam
+  let aimT = 0;
+  let litLatch = ''; // last portrait registered (must move the beam off to re-light)
+  // The work-song (Music Room piano): learn it from the Steward's ledger, play it back.
+  const SONG: number[] = [1, 3, 0, 2]; // mid → top → low → high
+  let songKnown = false;
+  let songActive = false;
+  let songPointer = 0;
+  let songDir = 1;
+  let songStep = 0;
+  let songSolved = false;
   let ink: number = TUNING.startInk;
   // ── survival systems ──
   let stamina: number = TUNING.staminaMax; // sprint reserve
@@ -219,6 +239,9 @@ export function createDirector(deps: DirectorDeps): Director {
       pickLo,
       pickHi,
       pickPins,
+      songActive,
+      songPointer,
+      songStep,
       objective,
       prompt: promptText,
       toast: toastText,
@@ -468,7 +491,7 @@ export function createDirector(deps: DirectorDeps): Director {
         toast("Iseult's Locket — a portrait of her and Cosmo inside. It fits a wall-safe somewhere below.");
         break;
       case 'note_iseult':
-        toast("Iseult's diary: “Father seals the lamp-room. He says the water is owed a daughter, and the ledger must balance.”");
+        toast("Iseult's diary: “Father seals the lamp-room… and he stopped the great clock at SEVEN — the hour the tide took her. He hangs our portraits in the order he lost us: wife, then son, then himself.”");
         break;
       // ── The Sister's Room (Ysolde / Marion subplot) ──
       case 'marion_photo':
@@ -480,7 +503,8 @@ export function createDirector(deps: DirectorDeps): Director {
         toast("The Steward's keepsake — worn smooth by handling. Carrying it, you might yet stay his hand.");
         break;
       case 'steward_ledger':
-        toast("The Steward's ledger & work-song: every task, every grave, ruled in the same tidy hand. He was a gardener once.");
+        songKnown = true;
+        toast("The Steward's ledger & work-song: every grave ruled in the same tidy hand. You memorise the tune — MID, TOP, LOW, HIGH. (A piano could play it.)");
         break;
       case 'attic_cache':
         ammo += 12;
@@ -749,6 +773,46 @@ export function createDirector(deps: DirectorDeps): Director {
           audio.play('puzzleBad');
         } else {
           startPick(itemId);
+        }
+      } else if (it.kind === 'clock') {
+        if (clockSolved) {
+          toast('The clock stands open, its secret spent.');
+        } else {
+          clockHour = (clockHour % 12) + 1;
+          audio.play('ui');
+          const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+          if (clockHour === 7) {
+            clockSolved = true;
+            audio.play('unlock');
+            dropNear('battery');
+            dropNear('bandage');
+            toast('VII — the hour the tide took her. Something CLICKS behind the dial; a hidden drawer spills its keepings.');
+          } else {
+            toast(`You turn the hands. They stand at ${ROMAN[clockHour - 1]}.`);
+          }
+        }
+      } else if (it.kind === 'portrait') {
+        audio.play('ui');
+        toast(
+          itemId === 'portrait_c'
+            ? 'Iseult Vane. Painted eyes, waiting to catch a light.'
+            : itemId === 'portrait_r'
+              ? 'Cosmo Vane — the boy. The eyes follow you.'
+              : 'Lucian Vane, the Founder. Hung last, watching the other two.',
+        );
+      } else if (it.kind === 'piano') {
+        if (songSolved) {
+          toast('The work-song still hangs in the air.');
+        } else if (!songKnown) {
+          toast("A grand piano, lid open. You don't know what to play. (Somewhere, his song is written down.)");
+          audio.play('puzzleBad');
+        } else {
+          songActive = true;
+          songStep = 0;
+          songPointer = 0;
+          songDir = 1;
+          audio.play('ui');
+          toast('You spread your hands over the keys — MID, TOP, LOW, HIGH. [E] strike the note · [Q] stop.');
         }
       } else if (it.kind === 'furnace') {
         if (furnaceLit) {
@@ -1070,6 +1134,18 @@ export function createDirector(deps: DirectorDeps): Director {
                             ? lockpicks > 0
                               ? 'Pick the lock'
                               : 'Locked (need a lockpick)'
+                          : it.kind === 'clock'
+                            ? clockSolved
+                              ? 'The Great Clock (open)'
+                              : 'Set the clock hands'
+                          : it.kind === 'portrait'
+                            ? 'Study the portrait'
+                          : it.kind === 'piano'
+                            ? songSolved
+                              ? 'The piano (the song lingers)'
+                              : songKnown
+                                ? 'Play the work-song'
+                                : 'A grand piano'
                           : it.kind === 'safe'
                             ? safeOpened
                               ? 'Wall-safe (open)'
@@ -1173,7 +1249,7 @@ export function createDirector(deps: DirectorDeps): Director {
 
     const intents = controls.consume();
     // inventory screen: toggle with [I]/[Tab]; pauses play (movement + enemies) while open
-    if (intents.inventory && !picking) inventoryOpen = !inventoryOpen;
+    if (intents.inventory && !picking && !songActive) inventoryOpen = !inventoryOpen;
     if (inventoryOpen) {
       if (intents.invAction) applyInvAction(intents.invAction);
       pushStore();
@@ -1190,8 +1266,38 @@ export function createDirector(deps: DirectorDeps): Director {
     }
     const busyPick = picking;
 
+    // ── the work-song: rooted at the keys, world stays LIVE — playing a dead
+    // man's song in a dark house while things may be closing in ──
+    if (songActive) {
+      songPointer += songDir * 0.9 * dt;
+      if (songPointer >= 1) { songPointer = 1; songDir = -1; } else if (songPointer <= 0) { songPointer = 0; songDir = 1; }
+      if (intents.use || intents.attack) {
+        const zone = Math.min(3, Math.floor(songPointer * 4));
+        if (zone === SONG[songStep]) {
+          songStep += 1;
+          audio.play('puzzleOk');
+          if (songStep >= SONG.length) {
+            songActive = false;
+            songSolved = true;
+            audio.play('phonograph');
+            stalkTimer += 60; // the house stills — the hunt forgets you a while
+            dropNear('flare');
+            toast('The work-song settles over the house like dust. Somewhere far off, something stops pacing.');
+          }
+        } else {
+          songStep = 0;
+          audio.play('puzzleBad');
+          toast('A discord — the note curdles. Begin the song again.');
+        }
+      } else if (intents.swap) {
+        songActive = false;
+        toast('You lift your hands from the keys.');
+      }
+    }
+    const busySong = songActive;
+
     // ── wound-binding: rooted + vulnerable while the bandage goes on ──
-    if (intents.bind && bindT <= 0 && !frozen && !busyPick) {
+    if (intents.bind && bindT <= 0 && !frozen && !busyPick && !busySong) {
       if (bandages <= 0) {
         toast('No bandages.');
         audio.play('puzzleBad');
@@ -1211,7 +1317,7 @@ export function createDirector(deps: DirectorDeps): Director {
       toast(crouched ? 'You sink low. Quiet now.' : 'You rise to your feet.');
     }
     // ── sprint: gated on stamina, rooted-out while binding/picking ──
-    const sprinting = intents.sprintHeld && stamina > 0 && canSprint && !busyBinding && !busyPick && !frozen;
+    const sprinting = intents.sprintHeld && stamina > 0 && canSprint && !busyBinding && !busyPick && !busySong && !frozen;
     if (sprinting) crouched = false;
 
     // move (binding / picking roots you in place)
@@ -1221,7 +1327,7 @@ export function createDirector(deps: DirectorDeps): Director {
       world,
       roomId: room,
       deltaSeconds: dt,
-      frozen: frozen || busyBinding || busyPick,
+      frozen: frozen || busyBinding || busyPick || busySong,
       sprint: sprinting,
       crouch: crouched,
     });
@@ -1271,6 +1377,61 @@ export function createDirector(deps: DirectorDeps): Director {
         if (ex) {
           stairArmed = false;
           beginTransition(ex.to, ex.entryLocal, Math.atan2(-ex.entryLocal[0], -ex.entryLocal[1]));
+        }
+      }
+    }
+
+    // ── the portrait eyes: hold the BEAM on each Vane portrait in the order he
+    // lost them (wife → son → himself). The flashlight is the puzzle verb. ──
+    if (!frozen && room === 'landing' && !eyesSolved && world.flashlightOn()) {
+      const PORTRAITS = [
+        { id: 'portrait_l', lx: -4 },
+        { id: 'portrait_c', lx: 0 },
+        { id: 'portrait_r', lx: 4 },
+      ];
+      const c = ROOMS.landing.center;
+      let idx = -1;
+      for (let i = 0; i < PORTRAITS.length; i++) {
+        const dx = c[0] + PORTRAITS[i].lx - actor.position.x;
+        const dz = c[2] - 5.7 - actor.position.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist > 8) continue;
+        let diff = Math.atan2(dx, dz) - actor.facingYaw;
+        diff = ((diff + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+        if (Math.abs(diff) < 0.28) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx !== aimTargetIdx) {
+        aimTargetIdx = idx;
+        aimT = 0;
+        if (idx === -1) litLatch = ''; // beam off all portraits — can re-light
+      } else if (idx >= 0) {
+        aimT += dt;
+        const pid = PORTRAITS[idx].id;
+        if (aimT > 0.7 && litLatch !== pid) {
+          litLatch = pid;
+          if (EYES_ORDER[eyesStep] === pid) {
+            eyesStep += 1;
+            audio.play('eyeAlign');
+            if (eyesStep >= EYES_ORDER.length) {
+              eyesSolved = true;
+              audio.play('vaultOpen');
+              dropNear('flare');
+              dropNear('rifleAmmo');
+              toast('Three pairs of painted eyes kindle gold — a panel behind the Founder swings wide. His hoard spills out.');
+            } else {
+              toast(`The painted eyes catch your light and KINDLE… (${eyesStep}/3)`);
+            }
+          } else if (eyesStep > 0) {
+            eyesStep = 0;
+            audio.play('puzzleBad');
+            toast('The kindled eyes dim, disappointed. Begin the order again.');
+          } else {
+            audio.play('ui');
+            toast('The painted eyes glint under your beam — but this is not where his grief begins.');
+          }
         }
       }
     }
@@ -1355,7 +1516,7 @@ export function createDirector(deps: DirectorDeps): Director {
     // interaction prompt + intents (while picking a lock, those inputs are the
     // minigame's — don't also fire interact/attack/swap here)
     const { itemId, exitIndex } = computePrompt();
-    if (!busyPick) {
+    if (!busyPick && !busySong) {
       if (intents.use) interact(itemId, exitIndex);
       if (intents.attack && !busyBinding) doAttack();
       if (intents.swap) cycleWeapon();

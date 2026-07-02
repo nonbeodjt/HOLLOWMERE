@@ -36,6 +36,9 @@ export interface GameStoreSnapshot {
   readonly pickLo: number; // 0..1 sweet-spot lower bound
   readonly pickHi: number; // 0..1 sweet-spot upper bound
   readonly pickPins: number; // pins left to set
+  readonly songActive: boolean; // work-song piano minigame active (world stays live)
+  readonly songPointer: number; // 0..1 sweeping pointer over the four note zones
+  readonly songStep: number; // notes played correctly so far (0..4)
   readonly objective: string;
   readonly prompt: string; // contextual interaction prompt ("" = none)
   readonly toast: string; // transient message
@@ -78,6 +81,9 @@ const initial: GameStoreSnapshot = {
   pickLo: 0,
   pickHi: 0,
   pickPins: 0,
+  songActive: false,
+  songPointer: 0,
+  songStep: 0,
   objective: 'Cross the threshold.',
   prompt: '',
   toast: '',
