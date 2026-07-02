@@ -248,6 +248,24 @@ const SPECS: ItemSpec[] = [
   { id: 'keycard', roomId: 'lab', lx: 5, lz: 5, kind: 'item', label: 'Keycard', asset: ASSET_KEYS.props.keycard, color: [0.3, 0.5, 0.6], emissive: true, scale: 0.4, spin: true },
   // ── v3.3 expansion: attic key + the two NPCs ──
   { id: 'attic_key', roomId: 'nursery', lx: 4.8, lz: -3, kind: 'item', label: 'Attic Key', asset: ASSET_KEYS.props.ironKey, color: [0.8, 0.62, 0.24], emissive: true, scale: 0.5, spin: true },
+  // ── rooms realigned to the design bible ──
+  // Iseult's Room [U05]: the Founder's grief tableau — no enemy. The LOCKET
+  // (key item) + her diary; a preserved, sorrowful room.
+  { id: 'locket', roomId: 'iseult_room', lx: -3.5, lz: 2.6, kind: 'item', label: "Iseult's Locket", asset: ASSET_KEYS.props.brassKey, color: [0.85, 0.72, 0.3], emissive: true, scale: 0.42, spin: true },
+  { id: 'note_iseult', roomId: 'iseult_room', lx: 3.4, lz: 2.6, kind: 'item', label: "Iseult's Diary", asset: ASSET_KEYS.props.book, color: [0.55, 0.32, 0.5], emissive: true, scale: 0.5, spin: true },
+  // The Sister's Room [U05]: refuge + Marion's traces — Ysolde is here early,
+  // Marion's photo foreshadows the reunion, herbs; a near-safe room (no enemy).
+  { id: 'marion_photo', roomId: 'sister_room', lx: -3.2, lz: 2.4, kind: 'item', label: "Marion's Photo", asset: ASSET_KEYS.props.book, color: [0.7, 0.7, 0.62], emissive: true, scale: 0.45, spin: true },
+  { id: 'fenmoss_sister', roomId: 'sister_room', lx: 3.2, lz: 2.4, kind: 'item', label: 'Herbs (Fenmoss)', asset: ASSET_KEYS.props.fenmoss, color: [0.3, 0.7, 0.35], emissive: true, scale: 0.5, spin: true },
+  // The Steward's Loft [U07]: a hound nest + his keepsake (mercy) and ledger /
+  // work-song sheet — the compulsion made visible. Plus a servants' ammo cache.
+  { id: 'keepsake', roomId: 'attic_loft', lx: -3, lz: 2, kind: 'item', label: "The Steward's Keepsake", asset: ASSET_KEYS.props.brassKey, color: [0.7, 0.66, 0.4], emissive: true, scale: 0.4, spin: true },
+  { id: 'steward_ledger', roomId: 'attic_loft', lx: 3, lz: 2, kind: 'item', label: "The Steward's Ledger", asset: ASSET_KEYS.props.logbook, color: [0.6, 0.5, 0.3], emissive: true, scale: 0.55, spin: true },
+  { id: 'attic_cache', roomId: 'attic_loft', lx: 0, lz: -3, kind: 'item', label: "Servants' Ammo Cache", asset: ASSET_KEYS.props.oilCan, color: [0.7, 0.6, 0.25], emissive: true, scale: 0.7, spin: true },
+  // The Kitchen [G06]: hound ambush + a CLEAVER (melee upgrade) + herbs. The
+  // dumbwaiter shortcut to the boiler is a room exit (see config).
+  { id: 'cleaver', roomId: 'kitchen', lx: 0, lz: 1.5, kind: 'item', label: 'Cleaver', asset: ASSET_KEYS.props.dagger, color: [0.7, 0.72, 0.75], emissive: true, scale: 0.5, spin: true },
+  { id: 'fenmoss_3', roomId: 'kitchen', lx: -3, lz: 2, kind: 'item', label: 'Herbs (Fenmoss)', asset: ASSET_KEYS.props.fenmoss, color: [0.3, 0.7, 0.35], emissive: true, scale: 0.5, spin: true },
   {
     id: 'marion', roomId: 'containment', lx: -5, lz: -1, kind: 'npc', label: 'Marion', asset: ASSET_KEYS.chars.marion, color: [0.62, 0.68, 0.66], scale: 1.7, blockerHalf: 0.5,
     lines: [
@@ -258,12 +276,12 @@ const SPECS: ItemSpec[] = [
     ],
   },
   {
-    id: 'ysolde', roomId: 'chapel', lx: 3.5, lz: -6, kind: 'npc', label: 'Sister Ysolde', asset: ASSET_KEYS.chars.ysolde, color: [0.78, 0.75, 0.68], scale: 1.7, blockerHalf: 0.5,
+    id: 'ysolde', roomId: 'sister_room', lx: 0, lz: -3, kind: 'npc', label: 'Sister Ysolde', asset: ASSET_KEYS.chars.ysolde, color: [0.78, 0.75, 0.68], scale: 1.7, blockerHalf: 0.5,
     lines: [
-      'You feel it too — the house drawing breath. Sit. Confess, if it eases you.',
+      'You made it up here — good. This was my room; my suitcase is still by the bed.',
       'Aldous was a good man. The Steward. Grief hollowed him; he only means to tidy the dead.',
-      'The silver key lies on the altar. The crypt is beneath us. God forgive what the Founder buried there.',
-      'I will keep the vigil here. Go, child — while the light still holds.',
+      'Marion went down toward the containment lab. If you find her… her jacket is here. Take it to her.',
+      'When you reach the chapel, the silver key waits on the altar. Go, child — while the light still holds.',
     ],
   },
 ];

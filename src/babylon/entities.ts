@@ -102,6 +102,12 @@ const SPAWNS: { kind: EnemyKind; roomId: RoomId; lx: number; lz: number }[] = [
   { kind: 'crawler', roomId: 'nursery', lx: 0, lz: 3 },
   { kind: 'drowned', roomId: 'crypt', lx: -4, lz: 0 },
   { kind: 'drowned', roomId: 'crypt', lx: 4, lz: 4 },
+  // Iseult's Room + the Sister's Room are LORE/REFUGE beats per the bible — no
+  // enemy (grief tableau / Ysolde's near-safe room). The Attic is the Steward's
+  // Loft: a Hollow-hound nest. The Kitchen is a hound ambush off the yard.
+  { kind: 'hound', roomId: 'attic_loft', lx: -2, lz: 2 }, // the loft nest
+  { kind: 'hound', roomId: 'attic_loft', lx: 3, lz: 3 },
+  { kind: 'hound', roomId: 'kitchen', lx: 2, lz: -3 },
 ];
 
 const pick = (g: AnimationGroup[], n: string) => g.find((x) => x.name.toLowerCase().includes(n));

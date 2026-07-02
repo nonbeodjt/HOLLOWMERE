@@ -58,6 +58,9 @@ export function createDirector(deps: DirectorDeps): Director {
   let ammo = 0;
   let flares: number = TUNING.startFlares;
   let hasFlare = TUNING.startFlares > 0; // own the flare GUN — stays in hand/bar even at 0 ammo
+  let hasLocket = false; // Iseult's locket (grief-room key item / safe key)
+  let hasKeepsake = false; // the Steward's keepsake (mercy hook)
+  let hasCleaver = false; // kitchen melee upgrade — dagger hits harder
   let ink: number = TUNING.startInk;
   // ── survival systems ──
   let stamina: number = TUNING.staminaMax; // sprint reserve
@@ -406,8 +409,43 @@ export function createDirector(deps: DirectorDeps): Director {
         toast('Pistol ammo (+8).');
         break;
       case 'fenmoss_1':
+      case 'fenmoss_3':
+      case 'fenmoss_sister':
         hp = Math.min(TUNING.playerMaxHp, hp + 40);
         toast('Fenmoss — the wound closes a little.');
+        break;
+      // ── Iseult's Room (grief tableau) ──
+      case 'locket':
+        hasLocket = true;
+        toast("Iseult's Locket — a portrait of her and Cosmo inside. It fits a wall-safe somewhere below.");
+        break;
+      case 'note_iseult':
+        toast("Iseult's diary: “Father seals the lamp-room. He says the water is owed a daughter, and the ledger must balance.”");
+        break;
+      // ── The Sister's Room (Ysolde / Marion subplot) ──
+      case 'marion_photo':
+        toast("A photo of Wren & Marion, and Marion's jacket. She went down toward the containment lab.");
+        break;
+      // ── The Steward's Loft (mercy + humanization) ──
+      case 'keepsake':
+        hasKeepsake = true;
+        toast("The Steward's keepsake — worn smooth by handling. Carrying it, you might yet stay his hand.");
+        break;
+      case 'steward_ledger':
+        toast("The Steward's ledger & work-song: every task, every grave, ruled in the same tidy hand. He was a gardener once.");
+        break;
+      case 'attic_cache':
+        ammo += 12;
+        flares += 1;
+        hasFlare = true;
+        if (hasRifle) rifleAmmo += 6;
+        if (hasCannon) cannonAmmo += 3;
+        toast("Servants' ammo cache — pistol +12, a flare, and rounds for what you carry.");
+        break;
+      // ── The Kitchen (cleaver melee upgrade) ──
+      case 'cleaver':
+        hasCleaver = true;
+        toast('A heavy cleaver — your dagger strikes bite deeper now.');
         break;
       case 'bluecap_1':
         hp = Math.min(TUNING.playerMaxHp, hp + 20);
@@ -677,7 +715,7 @@ export function createDirector(deps: DirectorDeps): Director {
     if (weapon === 'dagger') {
       weaponView.attack('dagger');
       audio.play('dagger');
-      const r = entities.attackNearest(pos, face, TUNING.daggerDamage, false, TUNING.attackRange, false);
+      const r = entities.attackNearest(pos, face, TUNING.daggerDamage + (hasCleaver ? 1 : 0), false, TUNING.attackRange, false);
       reactAttack(r);
     } else if (weapon === 'pistol') {
       if (ammo <= 0) {

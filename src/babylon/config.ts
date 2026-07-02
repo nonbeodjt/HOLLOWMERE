@@ -406,6 +406,7 @@ export const ROOMS: Record<RoomId, RoomDef> = {
     spawnLocal: [-5, 0],
     exits: [
       { id: 'boiler_to_corridor', to: 'corridor', at: [-5.6, 0], label: 'East Corridor', entryLocal: [2.8, 0] },
+      { id: 'boiler_to_kitchen', to: 'kitchen', at: [0, -6.6], label: 'Dumbwaiter — up to the Kitchen', noFrame: true, entryLocal: [0, -4.5] },
       { id: 'boiler_to_cistern', to: 'cistern', at: [0, 6.6], label: 'The Cistern', entryLocal: [0, -10] },
       { id: 'boiler_to_crypt', to: 'crypt', at: [5.6, 0], label: 'Undercroft — the Crypt', entryLocal: [-7, 0] },
     ],
@@ -530,6 +531,7 @@ export const ROOMS: Record<RoomId, RoomDef> = {
     exits: [
       { id: 'kitchen_to_corridor', to: 'corridor', at: [6.4, 0], label: 'East Corridor', entryLocal: [-3, 0] },
       { id: 'kitchen_to_dining', to: 'dining', at: [-6.4, 0], label: 'The Dining Room', entryLocal: [8, 0] },
+      { id: 'kitchen_to_boiler', to: 'boiler', at: [0, -5.6], label: 'Dumbwaiter — down to the Boiler', noFrame: true, entryLocal: [0, -4.5] },
     ],
   },
   dining: {
