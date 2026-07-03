@@ -437,7 +437,7 @@ function IntroCutscene({ ready, loadProgress }: { ready: boolean; loadProgress: 
         <>
           <button style={{ ...beginBtnStyle, marginTop: 20 }} onClick={triggerStart}>▸ Enter Hollowmere</button>
           <p style={{ color: INK, opacity: 0.55, fontSize: '0.72rem', marginTop: 16, textAlign: 'center', lineHeight: 1.6 }}>
-            <b style={{ color: AMBER }}>WASD</b> move · <b style={{ color: AMBER }}>Mouse</b> look · <b style={{ color: AMBER }}>Shift</b> sprint · <b style={{ color: AMBER }}>C</b> sneak · <b style={{ color: AMBER }}>L</b> flashlight · <b style={{ color: AMBER }}>B</b> bind wound<br />
+            <b style={{ color: AMBER }}>WASD</b> move · <b style={{ color: AMBER }}>Mouse</b> look · <b style={{ color: AMBER }}>Shift</b> sprint · <b style={{ color: AMBER }}>Space</b> dodge · <b style={{ color: AMBER }}>C</b> sneak · <b style={{ color: AMBER }}>L</b> flashlight · <b style={{ color: AMBER }}>B</b> bind<br />
             <b style={{ color: AMBER }}>Left-click</b> attack · <b style={{ color: AMBER }}>E</b> use · <b style={{ color: AMBER }}>1–9</b> select · <b style={{ color: AMBER }}>I</b>/<b style={{ color: AMBER }}>Tab</b> inventory · <b style={{ color: AMBER }}>Esc</b> release
           </p>
         </>

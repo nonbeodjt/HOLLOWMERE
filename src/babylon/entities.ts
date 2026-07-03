@@ -77,6 +77,9 @@ export interface SceneEntities {
   aliveCount(roomId: RoomId): number;
   bossAlive(): boolean;
   hitFromAngle(playerPos: Vector3, roomId: RoomId): number | null; // world yaw to nearest threat
+  alertRoom(roomId: RoomId, x: number, z: number): void; // NOISE: everything in the room turns toward it
+  nearestCorpse(playerPos: Vector3, roomId: RoomId): boolean; // a pinnable Sallowed corpse within reach?
+  pinCorpse(playerPos: Vector3, roomId: RoomId): boolean; // dagger-pin it — long ripen delay
 
   exposeLeviathan(): void;
   dispose(): void;
@@ -763,6 +766,16 @@ export function createSceneEntities(scene: Scene): SceneEntities {
       }
       if (!best) return 'none';
 
+      // STAGGER: landing a hit during an enemy's windup interrupts the attack —
+      // it flinches, loses the swing, and resets to cooldown. Rewards timing.
+      if (!isBoss(best.kind) && best.atkPhase === 1) {
+        best.atkPhase = 0;
+        best.attackT = 0;
+        best.struck = false;
+        best.atkCd = 1.3;
+        best.root.rotation.x = -0.3; // recoil flinch (settles next frame)
+      }
+
       // hit spray: dark blood for flesh, green ichor for the fungal bosses
       const hy = isBoss(best.kind) ? 1.4 : best.kind === 'hound' ? 0.55 : 0.95;
       HIT_AT.set(best.root.position.x, best.root.position.y + hy, best.root.position.z);
@@ -891,6 +904,39 @@ export function createSceneEntities(scene: Scene): SceneEntities {
       }
       if (!best) return null;
       return Math.atan2(best.root.position.x - playerPos.x, best.root.position.z - playerPos.z);
+    },
+    alertRoom(roomId, x, z) {
+      // a gunshot's echo: every live enemy in the room snaps toward the sound
+      for (const e of enemies) {
+        if (e.roomId !== roomId || e.state === 'gone' || e.state === 'corpse') continue;
+        if (e.kind === 'steward' && e.state === 'idle') continue;
+        e.aggro = true;
+        e.alertT = 6;
+        e.lkx = x;
+        e.lkz = z;
+        if (e.kind === 'crawler') e.dropped = true; // the ceiling lets go
+      }
+    },
+    nearestCorpse(playerPos, roomId) {
+      for (const e of enemies) {
+        if (e.kind !== 'sallowed' || e.roomId !== roomId || e.state !== 'corpse') continue;
+        const dx = e.root.position.x - playerPos.x;
+        const dz = e.root.position.z - playerPos.z;
+        if (dx * dx + dz * dz <= 4.4) return true; // ~2.1m
+      }
+      return false;
+    },
+    pinCorpse(playerPos, roomId) {
+      for (const e of enemies) {
+        if (e.kind !== 'sallowed' || e.roomId !== roomId || e.state !== 'corpse') continue;
+        const dx = e.root.position.x - playerPos.x;
+        const dz = e.root.position.z - playerPos.z;
+        if (dx * dx + dz * dz <= 4.4) {
+          e.ripen += 30; // pinned through the sternum — it rises much, much later
+          return true;
+        }
+      }
+      return false;
     },
     exposeLeviathan() {
       leviathan.dropped = true;

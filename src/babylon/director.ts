@@ -179,6 +179,10 @@ export function createDirector(deps: DirectorDeps): Director {
     lockpicks: number;
   } | null = null;
   let crouched = false; // sneak stance: slow + quiet + near-invisible in the dark
+  let dodgeT = 0; // >0 while the dodge-step burst is in flight
+  let dodgeDx = 0; // world-space dodge direction
+  let dodgeDz = 0;
+  let invulnT = 0; // i-frames (dodge) — incoming damage is ignored while > 0
   let dmgFlash = 0; // 0..1 damage-feedback flash (decays)
   let dmgAngle = 0; // screen-relative yaw of the last incoming hit
   let stepStalkT = 0; // cadence timer for the Steward's proximity footsteps
@@ -326,6 +330,20 @@ export function createDirector(deps: DirectorDeps): Director {
     items.setActiveRoom('hall', world);
     items.setCrestSockets(crestsSeated);
     actor.teleport(world, 'hall', ROOMS.hall.spawnLocal[0], ROOMS.hall.spawnLocal[1], Math.PI);
+    // initial checkpoint: dying before the first door must still offer a rise
+    checkpoint = {
+      room: 'hall',
+      entry: [ROOMS.hall.spawnLocal[0], ROOMS.hall.spawnLocal[1]],
+      hp: TUNING.playerMaxHp,
+      ammo,
+      rifleAmmo,
+      cannonAmmo,
+      flares,
+      ink,
+      bandages,
+      battery: Math.max(25, Math.round(battery)),
+      lockpicks,
+    };
     audio.unlock();
     audio.ambience('explore');
     objective = 'Seek the Drawing Room (west). Save, and take the Brass Key.';
@@ -719,6 +737,13 @@ export function createDirector(deps: DirectorDeps): Director {
       toast('You lay the keepsake in his hands. The Steward stills, and does not rise again.');
       return;
     }
+    if (itemId === '__pin__') {
+      if (entities.pinCorpse(actor.position, room)) {
+        audio.play('dagger');
+        toast('You drive the blade through the sternum, into the boards beneath. It will not rise soon.');
+      }
+      return;
+    }
     if (itemId) {
       const it = items.byId(itemId);
       if (!it) return;
@@ -902,6 +927,18 @@ export function createDirector(deps: DirectorDeps): Director {
             ? hasAtticKey
             : true);
 
+  // NOISE: a shot echoes through the house — everything in the room snaps to
+  // it, and the Steward's cross-room hunt homes in fast. The dagger is silent.
+  let echoWarned = false;
+  const gunEcho = () => {
+    entities.alertRoom(room, actor.position.x, actor.position.z);
+    stalkTimer = Math.max(2, stalkTimer - 6);
+    if (!echoWarned) {
+      echoWarned = true;
+      toast('The shot ECHOES through the house. Everything heard it.');
+    }
+  };
+
   const doAttack = () => {
     const pos = actor.position;
     const face = actor.facingYaw;
@@ -919,6 +956,7 @@ export function createDirector(deps: DirectorDeps): Director {
       ammo -= 1;
       weaponView.attack('pistol');
       audio.play('gun');
+      gunEcho();
       const r = entities.attackNearest(pos, face, TUNING.pistolDamage, false, 45, true);
       reactAttack(r);
       if (ammo === 0) {
@@ -935,6 +973,7 @@ export function createDirector(deps: DirectorDeps): Director {
       rifleAmmo -= 1;
       weaponView.attack('rifle');
       audio.play('shotgun');
+      gunEcho();
       const r = entities.attackNearest(pos, face, TUNING.rifleDamage, false, 55, true);
       reactAttack(r);
       if (rifleAmmo === 0) {
@@ -950,6 +989,7 @@ export function createDirector(deps: DirectorDeps): Director {
       cannonAmmo -= 1;
       weaponView.attack('cannon');
       audio.play('shotgun');
+      gunEcho();
       const r = entities.attackNearest(pos, face, 4, false, 40, true); // hand-cannon hits hardest
       reactAttack(r);
     } else {
@@ -960,6 +1000,7 @@ export function createDirector(deps: DirectorDeps): Director {
       flares -= 1;
       weaponView.attack('flare');
       audio.play('flare');
+      gunEcho();
       const r = entities.attackNearest(pos, face, TUNING.flareDamage, true, 45, true);
       reactAttack(r);
       // stay equipped when empty (no auto-switch) + scatter a fresh flare to find
@@ -1156,6 +1197,10 @@ export function createDirector(deps: DirectorDeps): Director {
                               ? 'Read'
                               : `Take ${it.label}`;
       exitIndex = -1;
+    } else if (entities.nearestCorpse(pos, room)) {
+      // dagger execute: buy time without spending a flare
+      promptText = 'Pin the corpse — delay its rising';
+      return { itemId: '__pin__', exitIndex: -1 };
     } else if (exitIndex >= 0) {
       const ex = exits[exitIndex];
       promptText = !exitOpen(ex) ? `${ex.label} (Locked)` : `Go to ${ex.label}`;
@@ -1316,6 +1361,27 @@ export function createDirector(deps: DirectorDeps): Director {
       audio.play('ui');
       toast(crouched ? 'You sink low. Quiet now.' : 'You rise to your feet.');
     }
+    // ── dodge-step: a stamina burst with i-frames — the answer to windups ──
+    if (intents.dodge && dodgeT <= 0 && stamina >= 25 && !busyBinding && !busyPick && !busySong && !frozen) {
+      stamina -= 25;
+      dodgeT = 0.22;
+      invulnT = 0.34; // brief invulnerability — dodge THROUGH the strike
+      const yaw = actor.facingYaw;
+      const mag = Math.hypot(dx, dy);
+      if (mag > 0.08) {
+        // dodge in the held movement direction (camera-relative, same math as walking)
+        dodgeDx = (Math.sin(yaw) * -dy + Math.cos(yaw) * dx) / mag;
+        dodgeDz = (Math.cos(yaw) * -dy - Math.sin(yaw) * dx) / mag;
+      } else {
+        dodgeDx = -Math.sin(yaw); // no input — hop backward, away from what you face
+        dodgeDz = -Math.cos(yaw);
+      }
+      crouched = false;
+      actor.addShake(0.18);
+      audio.play('step');
+    }
+    if (invulnT > 0) invulnT -= dt;
+
     // ── sprint: gated on stamina, rooted-out while binding/picking ──
     const sprinting = intents.sprintHeld && stamina > 0 && canSprint && !busyBinding && !busyPick && !busySong && !frozen;
     if (sprinting) crouched = false;
@@ -1331,6 +1397,14 @@ export function createDirector(deps: DirectorDeps): Director {
       sprint: sprinting,
       crouch: crouched,
     });
+
+    // dodge burst: fast lateral displacement on top of normal movement
+    if (dodgeT > 0) {
+      dodgeT -= dt;
+      actor.position.x += dodgeDx * 11 * dt;
+      actor.position.z += dodgeDz * 11 * dt;
+      world.clampToRoom(room, actor.position);
+    }
 
     // ── survival meters ──
     if (sprinting && actor.moving) stamina = Math.max(0, stamina - TUNING.sprintDrain * dt);
@@ -1438,16 +1512,17 @@ export function createDirector(deps: DirectorDeps): Director {
 
     // enemies
     const et = entities.update(dt, actor.position, world, crouched);
-    if (et.contactDamage > 0) {
+    // dodge i-frames: damage rolls off entirely while invulnerable
+    if (et.contactDamage > 0 && invulnT <= 0) {
       hp -= et.contactDamage * dt;
       if (et.grabbed && Math.random() < dt * 1.5) audio.play('grab');
     }
-    if (et.burstDamage > 0) {
+    if (et.burstDamage > 0 && invulnT <= 0) {
       hp -= et.burstDamage;
       if (et.weeperSpat) audio.play('weeperSpit');
     }
     // ── damage feedback: directional vignette + view-shake ──
-    const tookHit = et.contactDamage > 0 || et.burstDamage > 0;
+    const tookHit = (et.contactDamage > 0 || et.burstDamage > 0) && invulnT <= 0;
     if (tookHit) {
       const a = entities.hitFromAngle(actor.position, room);
       if (a !== null) dmgAngle = a - actor.facingYaw;
