@@ -239,6 +239,7 @@ export function createDirector(deps: DirectorDeps): Director {
       bandages,
       binding: bindT > 0 ? 1 - bindT / TUNING.bindDuration : 0,
       sneaking: crouched,
+      checkpointName: checkpoint ? ROOMS[checkpoint.room].name : '',
       lockpicks,
       picking,
       pickAngle,
@@ -268,21 +269,27 @@ export function createDirector(deps: DirectorDeps): Director {
   const enterRoom = (to: RoomId, entry: [number, number], faceYaw: number) => {
     room = to;
     stairArmed = false; // arriving on/near a stair must not bounce you straight back
-    // checkpoint at the threshold — with a mercy floor so you're never reborn
-    // half-dead in the dark (hp ≥ 40, battery ≥ 25)
-    checkpoint = {
-      room: to,
-      entry: [entry[0], entry[1]],
-      hp: Math.max(40, Math.round(hp)),
-      ammo,
-      rifleAmmo,
-      cannonAmmo,
-      flares,
-      ink,
-      bandages,
-      battery: Math.max(25, Math.round(battery)),
-      lockpicks,
-    };
+    // PERMANENT CHECKPOINTS ONLY: the Great Hall (the hub) and the Drawing Room
+    // (the hearth / Ledger room). Passing through one marks it; death returns
+    // you THERE — not to whatever door you last used. Mercy floors still apply
+    // (hp ≥ 40, battery ≥ 25) so you're never reborn half-dead in the dark.
+    if (to === 'hall' || to === 'drawing') {
+      const moved = checkpoint?.room !== to;
+      checkpoint = {
+        room: to,
+        entry: [entry[0], entry[1]],
+        hp: Math.max(40, Math.round(hp)),
+        ammo,
+        rifleAmmo,
+        cannonAmmo,
+        flares,
+        ink,
+        bandages,
+        battery: Math.max(25, Math.round(battery)),
+        lockpicks,
+      };
+      if (moved && started) toast(`The house marks your passage. (Checkpoint: ${ROOMS[to].name})`);
+    }
     world.setActiveRoom(to);
     entities.setActiveRoom(to, world);
     items.setActiveRoom(to, world);
@@ -1128,7 +1135,7 @@ export function createDirector(deps: DirectorDeps): Director {
     world.setFlashlight(battery > 0);
     enterRoom(checkpoint.room, checkpoint.entry, Math.PI);
     audio.play('save');
-    toast('You wake at the last threshold. The house pretends nothing happened.');
+    toast(`You wake in the ${ROOMS[room].name}. The house pretends nothing happened.`);
   };
 
   const computePrompt = (): { itemId: string | null; exitIndex: number } => {
