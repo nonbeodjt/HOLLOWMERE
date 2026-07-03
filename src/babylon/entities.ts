@@ -322,7 +322,13 @@ export function createSceneEntities(scene: Scene): SceneEntities {
   const stewardFinal = spawn('steward_final', 'lab', 0, 4);
   const founder = spawn('founder', 'lighthouse', 0, 4);
 
+  // each enemy registers with the flashlight's shadow map once, on first placement
+  const shadowedRoots = new WeakSet<TransformNode>();
   const placeInRoom = (e: Enemy, world: GameWorldObjects) => {
+    if (!shadowedRoots.has(e.root)) {
+      shadowedRoots.add(e.root);
+      world.addShadowCaster(e.root);
+    }
     const c = world.roomCenter(e.roomId);
     e.root.position.set(c.x + e.lx, c.y, c.z + e.lz);
     e.placed = true;

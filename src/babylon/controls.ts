@@ -28,6 +28,9 @@ const settings = {
   brightness: (() => {
     try { const v = Number(localStorage.getItem('hm_brightness')); return v >= 0.6 && v <= 2 ? v : 1; } catch { return 1; }
   })(),
+  crt: (() => {
+    try { return localStorage.getItem('hm_crt') === '1'; } catch { return false; }
+  })(),
 };
 
 // accumulated mouse-look delta (pointer-lock), consumed by the actor each frame
@@ -81,6 +84,13 @@ export const controls = {
   },
   getBrightness() {
     return settings.brightness;
+  },
+  setCrt(on: boolean) {
+    settings.crt = on;
+    try { localStorage.setItem('hm_crt', on ? '1' : '0'); } catch { /* private mode */ }
+  },
+  getCrt() {
+    return settings.crt;
   },
   consume(): Intents {
     const snap = { ...intents };

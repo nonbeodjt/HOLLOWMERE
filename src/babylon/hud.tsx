@@ -34,6 +34,13 @@ export function Hud({ phaseRef }: HudProps) {
     setBright(v);
     void import('./controls').then((m) => m.controls.setBrightness(v));
   };
+  const [crt, setCrt] = useState(() => {
+    try { return localStorage.getItem('hm_crt') === '1'; } catch { return false; }
+  });
+  const applyCrt = (on: boolean) => {
+    setCrt(on);
+    void import('./controls').then((m) => m.controls.setCrt(on));
+  };
 
   const healthColor = s.healthState === 'danger' ? '#c2452f' : s.healthState === 'caution' ? '#d98a2b' : AMBER;
   // Respawn: reload the runtime but flag the intro to skip straight to "Enter"
@@ -251,6 +258,10 @@ export function Hud({ phaseRef }: HudProps) {
             <span>Brightness <b style={{ color: AMBER }}>{Math.round(bright * 100)}%</b></span>
             <input type="range" min={0.7} max={1.8} step={0.05} value={bright} onChange={(e) => applyBright(Number(e.target.value))} style={{ width: '100%', accentColor: AMBER }} />
             <span style={{ opacity: 0.55, fontSize: '0.68rem' }}>Raise this if the manor is too dark to read on your display.</span>
+          </label>
+          <label style={{ color: INK, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, cursor: 'pointer' }}>
+            <input type="checkbox" checked={crt} onChange={(e) => applyCrt(e.target.checked)} style={{ accentColor: AMBER }} />
+            <span>Film look <span style={{ opacity: 0.5, fontSize: '0.68rem' }}>(scanlines + frame weave)</span></span>
           </label>
           <button style={{ ...beginBtnStyle, marginTop: 14 }} onClick={() => setSettingsOpen(false)}>Close</button>
         </div>

@@ -163,6 +163,7 @@ export function createDirector(deps: DirectorDeps): Director {
   let stewardProx = 0;
   let stewardRelocTimer = 0;
   let stalkTimer = 14; // persistent-hunt clock: the Steward tracks you down room-to-room
+  let lightningTimer = 14; // storm clock — random flashes through the above-ground rooms
   let inventoryOpen = false; // full inventory screen (pauses play while open)
   // ── checkpoint: snapshotted at each threshold (room entry). Death offers
   // "rise at the last threshold" instead of a full restart — fair, not soft. ──
@@ -1237,6 +1238,7 @@ export function createDirector(deps: DirectorDeps): Director {
 
   const tick = (dt: number) => {
     world.setBrightness(controls.getBrightness()); // apply the Settings brightness every frame
+    world.setCrt(controls.getCrt());
     if (phase === 'TITLE') {
       const i = controls.consume();
       if (i.use || i.attack) {
@@ -1578,6 +1580,17 @@ export function createDirector(deps: DirectorDeps): Director {
       if (stepStalkT <= 0) {
         audio.play('stewardStep');
         stepStalkT = 1.15 - stewardProx * 0.8; // ~1.1s far → ~0.35s right behind you
+      }
+    }
+
+    // ── lightning: the storm flashes through the above-ground manor ──
+    lightningTimer -= dt;
+    if (lightningTimer <= 0) {
+      lightningTimer = 16 + Math.random() * 26;
+      const wing = ROOMS[room].wing;
+      if (wing !== 'cellar' && wing !== 'lab') {
+        world.triggerLightning();
+        audio.play('lightning');
       }
     }
 
