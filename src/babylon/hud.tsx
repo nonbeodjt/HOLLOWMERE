@@ -362,66 +362,45 @@ function LoadingScreen({ progress }: { progress: number }) {
         Every room, every resident, every light is being placed. Nothing enters the house after you do.
       </p>
       {introVideo ? <video src={introVideo} preload="auto" muted playsInline style={{ display: 'none' }} /> : null}
+      {ASSETS['intro_movie'] ? <video src={ASSETS['intro_movie']} preload="auto" muted playsInline style={{ display: 'none' }} /> : null}
     </div>
   );
 }
 
-// ── Opening story cutscene ────────────────────────────────────────────
-// A sequence of narrative beats that plays the moment the game mounts. Every
-// model + the physics engine preload in the background while it runs, so by the
-// time the reader reaches the last card the estate is (usually) ready. The
-// final "Enter" is gated on `ready` — if assets are still coming in it shows the
-// live progress instead, so you can never drop into a half-loaded house.
-const STORY: { title?: string; text: string }[] = [
-  { title: 'HOLLOWMERE', text: 'A great house on the tidal flats, cut from the mainland whenever the sea comes in. A letter was sent here, once. It was never answered.' },
-  { text: 'You are the relief courier. Behind you the causeway is already drowning; there is no road back now — only forward, and up, into the unlit house.' },
-  { text: 'Hollowmere does not keep its dead. Strike one down and it will ripen and rise again. Only fire keeps them still — your flares are mercy. Spend them well.' },
-  { text: 'Your flashlight is the only sight these halls will give you. But light carries, and something older lives here. It comes faster when it sees you burn.' },
-  { text: 'Find the four crests. Wake the lighthouse. Learn what the Vane family gave to the water — and why, all these years, the water has never given it back.' },
-  { text: 'Ration the flame. Bind your wounds. The tide is rising.' },
-];
+// ── Cinematic intro ───────────────────────────────────────────────────
+// A real film: four Veo shots with the narration MIXED INTO the video track,
+// played full-screen WITH SOUND. The explicit ▸ Begin click is the browser's
+// autoplay gesture, so unmuted playback is legal. Skippable at any moment;
+// respawns (hm_skipIntro) jump straight past it to the start card.
+type IntroStage = 'gate' | 'film' | 'done';
 
 function IntroCutscene({ ready, loadProgress }: { ready: boolean; loadProgress: number }) {
-  // On respawn we jump straight to the final "Enter" card — no story replay.
-  const [i, setI] = useState(() => {
-    try { return sessionStorage.getItem('hm_skipIntro') ? STORY.length - 1 : 0; } catch { return 0; }
+  const [stage, setStage] = useState<IntroStage>(() => {
+    try { return sessionStorage.getItem('hm_skipIntro') ? 'done' : 'gate'; } catch { return 'gate'; }
   });
   useEffect(() => { try { sessionStorage.removeItem('hm_skipIntro'); } catch { /* ignore */ } }, []);
-  const last = i >= STORY.length - 1;
-  useEffect(() => {
-    if (last) return;
-    const t = setTimeout(() => setI((n) => Math.min(STORY.length - 1, n + 1)), 9000); // let the narration breathe
-    return () => clearTimeout(t);
-  }, [i, last]);
-  // narration: one spoken clip per story beat (muted-autoplay rules mean the
-  // first beat may wait for the first click; each advance cuts to its own line)
-  useEffect(() => {
-    const url = ASSETS[`vo_intro_${i}`];
-    if (!url) return;
-    const el = new Audio(url);
-    el.volume = 0.95;
-    let kicked = false;
-    const kick = () => {
-      kicked = true;
-      void el.play().catch(() => undefined);
-      window.removeEventListener('pointerdown', kick);
-    };
-    void el.play().catch(() => {
-      window.addEventListener('pointerdown', kick);
-    });
-    return () => {
-      el.pause();
-      if (!kicked) window.removeEventListener('pointerdown', kick);
-    };
-  }, [i]);
-  const advance = () => setI((n) => Math.min(STORY.length - 1, n + 1));
-  const slide = STORY[i];
-  const pct = Math.round(loadProgress * 100);
+  const movie = ASSETS['intro_movie'];
+  void ready;
+  void loadProgress;
+
+  if (stage === 'film' && movie) {
+    return (
+      <div style={{ position: 'absolute', inset: 0, background: '#000', pointerEvents: 'auto' }}>
+        <video
+          src={movie}
+          autoPlay
+          playsInline
+          onEnded={() => setStage('done')}
+          onError={() => setStage('done')}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+        <button style={skipFilmBtnStyle} onClick={() => setStage('done')}>Skip ⏭</button>
+      </div>
+    );
+  }
+
   return (
-    <div style={cutsceneStyle} onClick={!last ? advance : undefined}>
-      {/* video-form intro: the generated causeway approach loops behind the story.
-          autoPlay usually suffices (muted); the ref-callback retry covers strict
-          autoplay policies by unlocking on the first pointer press. */}
+    <div style={cutsceneStyle}>
       {introVideo ? (
         <video
           src={introVideo}
@@ -444,44 +423,24 @@ function IntroCutscene({ ready, loadProgress }: { ready: boolean; loadProgress: 
       ) : null}
       <div style={cutsceneShadeStyle} />
       <div style={cutsceneContentStyle}>
-      {i === 0 && titleImg ? <img src={titleImg} alt="HOLLOWMERE" style={{ ...titleArtStyle, marginBottom: 8 }} /> : null}
-      {slide.title && !(i === 0 && titleImg) ? <h1 style={{ letterSpacing: 8, color: INK, margin: 0 }}>{slide.title}</h1> : null}
-      <p key={i} style={cutsceneTextStyle}>{slide.text}</p>
-
-      {/* progress dots */}
-      <div style={{ display: 'flex', gap: 7, marginTop: 20 }}>
-        {STORY.map((_, k) => (
-          <span key={k} style={{ width: 7, height: 7, borderRadius: '50%', background: k === i ? AMBER : 'rgba(233,220,195,0.28)' }} />
-        ))}
-      </div>
-
-      {!last ? (
-        <>
-          <button style={beginBtnStyle} onClick={(e) => { e.stopPropagation(); advance(); }}>Continue ▸</button>
-          <button
-            style={{ marginTop: 12, background: 'none', border: 'none', color: INK, opacity: 0.4, fontFamily: fontStack, fontSize: '0.72rem', letterSpacing: 1, cursor: 'pointer', pointerEvents: 'auto' }}
-            onClick={(e) => { e.stopPropagation(); setI(STORY.length - 1); }}
-          >
-            skip ⏭
-          </button>
-        </>
-      ) : ready ? (
-        <>
-          <button style={{ ...beginBtnStyle, marginTop: 20 }} onClick={triggerStart}>▸ Enter Hollowmere</button>
-          <p style={{ color: INK, opacity: 0.55, fontSize: '0.72rem', marginTop: 16, textAlign: 'center', lineHeight: 1.6 }}>
-            <b style={{ color: AMBER }}>WASD</b> move · <b style={{ color: AMBER }}>Mouse</b> look · <b style={{ color: AMBER }}>Shift</b> sprint · <b style={{ color: AMBER }}>Space</b> dodge · <b style={{ color: AMBER }}>C</b> sneak · <b style={{ color: AMBER }}>L</b> flashlight · <b style={{ color: AMBER }}>B</b> bind<br />
-            <b style={{ color: AMBER }}>Left-click</b> attack · <b style={{ color: AMBER }}>E</b> use · <b style={{ color: AMBER }}>1–9</b> select · <b style={{ color: AMBER }}>I</b>/<b style={{ color: AMBER }}>Tab</b> inventory · <b style={{ color: AMBER }}>Esc</b> release
-          </p>
-        </>
-      ) : (
-        <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-          <p style={{ color: AMBER, letterSpacing: 3, fontSize: '0.78rem', margin: 0 }}>THE HOUSE IS STILL WAKING…</p>
-          <div style={{ width: 260, height: 6, background: 'rgba(233,220,195,0.15)', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ width: `${pct}%`, height: '100%', background: AMBER, borderRadius: 3, transition: 'width 160ms linear' }} />
-          </div>
-          <p style={{ color: INK, opacity: 0.5, fontSize: '0.72rem', margin: 0 }}>{pct}%</p>
-        </div>
-      )}
+        {titleImg ? <img src={titleImg} alt="HOLLOWMERE" style={{ ...titleArtStyle, marginBottom: 8 }} /> : <h1 style={{ letterSpacing: 8, color: INK, margin: 0 }}>HOLLOWMERE</h1>}
+        {stage === 'gate' && movie ? (
+          <>
+            <p style={{ color: INK, opacity: 0.72, maxWidth: 460, textAlign: 'center', fontSize: '0.92rem', lineHeight: 1.65, marginTop: 14 }}>
+              A letter was sent to Hollowmere, once. It was never answered.
+            </p>
+            <button style={{ ...beginBtnStyle, marginTop: 20 }} onClick={() => setStage('film')}>▸ Begin</button>
+            <button style={skipLinkStyle} onClick={() => setStage('done')}>skip the film ⏭</button>
+          </>
+        ) : (
+          <>
+            <button style={{ ...beginBtnStyle, marginTop: 20 }} onClick={triggerStart}>▸ Enter Hollowmere</button>
+            <p style={{ color: INK, opacity: 0.55, fontSize: '0.72rem', marginTop: 16, textAlign: 'center', lineHeight: 1.6 }}>
+              <b style={{ color: AMBER }}>WASD</b> move · <b style={{ color: AMBER }}>Mouse</b> look · <b style={{ color: AMBER }}>Shift</b> sprint · <b style={{ color: AMBER }}>Space</b> dodge · <b style={{ color: AMBER }}>C</b> sneak · <b style={{ color: AMBER }}>L</b> flashlight · <b style={{ color: AMBER }}>B</b> bind<br />
+              <b style={{ color: AMBER }}>Left-click</b> attack · <b style={{ color: AMBER }}>E</b> use · <b style={{ color: AMBER }}>1–9</b> select · <b style={{ color: AMBER }}>I</b>/<b style={{ color: AMBER }}>Tab</b> inventory · <b style={{ color: AMBER }}>Esc</b> release
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
@@ -519,7 +478,8 @@ const curtainStyle: CSSProperties = { position: 'absolute', inset: 0, background
 const titleScreenStyle: CSSProperties = { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'radial-gradient(circle at 50% 40%, rgba(20,16,12,0.6), rgba(2,2,3,0.92))', fontFamily: fontStack, pointerEvents: 'auto', cursor: 'pointer', padding: 24 };
 const titleArtStyle: CSSProperties = { maxWidth: 'min(80vw, 460px)', imageRendering: 'pixelated', filter: 'drop-shadow(0 4px 16px #000)' };
 const cutsceneStyle: CSSProperties = { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'radial-gradient(circle at 50% 38%, rgba(18,14,10,0.72), rgba(2,2,3,0.97))', fontFamily: fontStack, pointerEvents: 'auto', cursor: 'pointer', padding: '24px 32px', textAlign: 'center', userSelect: 'none' };
-const cutsceneTextStyle: CSSProperties = { color: INK, opacity: 0.88, maxWidth: 520, fontSize: '1.02rem', lineHeight: 1.75, marginTop: 18, minHeight: 96, textShadow: '0 1px 3px #000' };
+const skipFilmBtnStyle: CSSProperties = { position: 'absolute', bottom: 22, right: 26, padding: '8px 18px', background: 'rgba(8,7,6,0.6)', color: '#e9dcc3', border: '1px solid rgba(233,220,195,0.35)', borderRadius: 5, fontFamily: fontStack, fontSize: '0.82rem', letterSpacing: 1, cursor: 'pointer', pointerEvents: 'auto' };
+const skipLinkStyle: CSSProperties = { marginTop: 12, background: 'none', border: 'none', color: INK, opacity: 0.45, fontFamily: fontStack, fontSize: '0.72rem', letterSpacing: 1, cursor: 'pointer', pointerEvents: 'auto' };
 const loadingScreenStyle: CSSProperties = { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#020203', fontFamily: fontStack, pointerEvents: 'auto', userSelect: 'none' };
 const cutsceneVideoStyle: CSSProperties = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 };
 const cutsceneShadeStyle: CSSProperties = { position: 'absolute', inset: 0, zIndex: 1, background: 'radial-gradient(circle at 50% 42%, rgba(4,3,3,0.35), rgba(2,2,3,0.88))' };
